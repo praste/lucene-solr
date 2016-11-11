@@ -1616,7 +1616,7 @@ public final class SolrCore implements SolrInfoMBean, Closeable {
       f = IndexFingerprint.getFingerprint(searcher, ctx, maxVersion);
       // cache fingerprint for the segment only if all the versions in the segment are included in the fingerprint
       if (f.getMaxVersionEncountered() == f.getMaxInHash()) {
-        log.info("Caching fingerprint for searcher:{} leafReaderContext:{} mavVersion:{}", searcher, ctx, maxVersion);
+        log.debug("Caching fingerprint for searcher:{} leafReaderContext:{} mavVersion:{}", searcher, ctx, maxVersion);
         perSegmentFingerprintCache.put(ctx.reader().getCoreCacheKey(), f);
       }
 

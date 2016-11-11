@@ -27,6 +27,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.http.NoHttpResponseException;
@@ -53,6 +58,7 @@ import org.apache.solr.update.processor.UpdateRequestProcessor;
 import org.apache.solr.update.processor.UpdateRequestProcessorChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 import static org.apache.solr.update.processor.DistributedUpdateProcessor.DistribPhase.FROMLEADER;
 import static org.apache.solr.update.processor.DistributingUpdateProcessorFactory.DISTRIB_UPDATE_PARAM;
@@ -560,7 +566,7 @@ public class PeerSync  {
 
     Object fingerprint = srsp.getSolrResponse().getResponse().get("fingerprint");
 
-    log.info(msg() + " Received " + otherVersions.size() + " versions from " + sreq.shards[0] + " fingerprint:" + fingerprint );
+    log.info(msg() + " Received version=" + otherVersions+ " from " + sreq.shards[0] + " fingerprint:" + fingerprint );
     if (fingerprint != null) {
       sreq.fingerprint = IndexFingerprint.fromObject(fingerprint);
     }
@@ -727,31 +733,37 @@ public class PeerSync  {
 
     Collections.sort(updates, updateRecordComparator);
 
-    Object o = null;
-    long lastVersion = 0;
-    try {
-      // Apply oldest updates first
-      for (Object obj : updates) {
-        // should currently be a List<Oper,Ver,Doc/Id>
-        o = obj;
-        List<Object> entry = (List<Object>)o;
+    final AtomicReference<Exception> exception = new AtomicReference<>();
+    final AtomicReference<Object> objHolder = new AtomicReference<Object>();
+    final AtomicReference<Long> maxVersionHolder = new AtomicReference<>(Long.valueOf(0));
+    
+    // TODO  move this out ?
+    Consumer<Object> updateCmdConsumer = (Object update) -> {
+      try {
+        // objHolder[0] = update;
+        List<Object> entry = (List<Object>) update;
 
         if (debug) {
-          log.debug(msg() + "raw update record " + o);
+          log.debug(msg() + "raw update record " + update);
         }
 
-        int oper = (Integer)entry.get(0) & UpdateLog.OPERATION_MASK;
+        int oper = (Integer) entry.get(0) & UpdateLog.OPERATION_MASK;
         long version = (Long) entry.get(1);
-        if (version == lastVersion && version != 0) continue;
-        lastVersion = version;
+        
+        // Not sure what this check was really intended for 
+        if (Math.abs(version) == Math.abs(maxVersionHolder.get()) && version == 0) {
+          log.info("Will not process version id:{}, lastVersion : {}", version, maxVersionHolder.get());
+          return;
+        }
+        
+        log.debug("Processing update version:{}", version);
+        
+        maxVersionHolder.set(Math.max(Math.abs(maxVersionHolder.get()), Math.abs(version))); 
 
         switch (oper) {
-          case UpdateLog.ADD:
-          {
-            // byte[] idBytes = (byte[]) entry.get(2);
-            SolrInputDocument sdoc = (SolrInputDocument)entry.get(entry.size()-1);
+          case UpdateLog.ADD: {
+            SolrInputDocument sdoc = (SolrInputDocument) entry.get(entry.size() - 1);
             AddUpdateCommand cmd = new AddUpdateCommand(req);
-            // cmd.setIndexedId(new BytesRef(idBytes));
             cmd.solrDoc = sdoc;
             cmd.setVersion(version);
             cmd.setFlags(UpdateCommand.PEER_SYNC | UpdateCommand.IGNORE_AUTOCOMMIT);
@@ -761,6 +773,7 @@ public class PeerSync  {
             proc.processAdd(cmd);
             break;
           }
+          
           case UpdateLog.DELETE:
           {
             byte[] idBytes = (byte[]) entry.get(2);
@@ -788,29 +801,58 @@ public class PeerSync  {
             proc.processDelete(cmd);
             break;
           }
-
-          default:
-            throw new SolrException(SolrException.ErrorCode.SERVER_ERROR,  "Unknown Operation! " + oper);
-        }
-
+        } // end of switch
+      } // end of try
+      catch (Exception e) {
+        objHolder.compareAndSet(null, updates);
+        //objHolder.set(update);
+        exception.compareAndSet(null,e);
       }
+    };
+    
+    try {
+      // if we have too many updates to process, process those in parallel
+      int parallelismThreshold = core.getSolrConfig().peerSyncParallelismThreshold;
+      if (parallelismThreshold > 0 && updates.size() > parallelismThreshold) {
+        log.info("Applying updates in parallel....");
+        ForkJoinPool fjp = new ForkJoinPool(2);
+        try {
+          /*Function<Object,Callable<Void>> updateTaskCreator = 
+              (Object update) -> {
+                                  return () -> {
+                                    updateCmdConsumer.accept(update);
+                                    return null;
+                                  };
+                                };
+          
+          List<Callable<Void>> updateTasks = updates.stream().map(update -> updateTaskCreator.apply(update))
+              .collect(Collectors.toList());
 
-    }
-    catch (IOException e) {
-      // TODO: should this be handled separately as a problem with us?
-      // I guess it probably already will by causing replication to be kicked off.
-      sreq.updateException = e;
-      log.error(msg() + "Error applying updates from " + sreq.shards + " ,update=" + o, e);
-      return false;
-    }
-    catch (Exception e) {
-      sreq.updateException = e;
-      log.error(msg() + "Error applying updates from " + sreq.shards + " ,update=" + o, e);
-      return false;
-    }
-    finally {
+          fjp.invokeAll(updateTasks);*/
+          
+          fjp.submit(() -> {updates.stream().parallel().forEach(update -> updateCmdConsumer.accept(update));}).get();
+
+        } finally {
+          log.info("Shutting down the pool");
+          fjp.shutdownNow();
+        }
+      } else {
+        log.info("Applying updates one at time....");
+        updates.stream().forEach(update -> updateCmdConsumer.accept(update));
+      }
+    } catch (Exception e) {
+      exception.compareAndSet(null, e);
+      log.error("Error applying updates in parallel");
+    } finally {
       try {
+        if (exception.get() != null) {
+          sreq.updateException = exception.get();
+          log.error(msg() + "Error applying updates from " + sreq.shards + " ,update=" + objHolder.get(),
+              exception.get());
+          return false;
+        }
         proc.finish();
+
       } catch (Exception e) {
         sreq.updateException = e;
         log.error(msg() + "Error applying updates from " + sreq.shards + " ,finish()", e);

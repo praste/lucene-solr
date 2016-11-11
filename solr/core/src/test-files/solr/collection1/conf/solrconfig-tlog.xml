@@ -49,6 +49,7 @@
   
   <peerSync>
     <useRangeVersions>${solr.peerSync.useRangeVersions:true}</useRangeVersions>
+    <parallelismThreshold>${solr.peerSync.parallelismThreshold:25}</parallelismThreshold>
   </peerSync>
 
   <updateHandler class="solr.DirectUpdateHandler2">

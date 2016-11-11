@@ -251,6 +251,8 @@ public class SolrConfig extends Config implements MapSerializable {
     enableLazyFieldLoading = getBool("query/enableLazyFieldLoading", false);
     
     useRangeVersionsForPeerSync = getBool("peerSync/useRangeVersions", true);
+    
+    peerSyncParallelismThreshold = getInt("peerSync/parallelismThreshold", 5000); //arbitrary default value
 
     filterCacheConfig = CacheConfig.getConfig(this, "query/filterCache");
     queryResultCacheConfig = CacheConfig.getConfig(this, "query/queryResultCache");
@@ -491,6 +493,8 @@ public class SolrConfig extends Config implements MapSerializable {
   public final boolean enableLazyFieldLoading;
   
   public final boolean useRangeVersionsForPeerSync;
+  
+  public final int peerSyncParallelismThreshold;
   
   // DocSet
   public final float hashSetInverseLoadFactor;
@@ -895,6 +899,7 @@ public class SolrConfig extends Config implements MapSerializable {
     m = new LinkedHashMap();
     result.put("peerSync", m);
     m.put("useRangeVersions", useRangeVersionsForPeerSync);
+    m.put("parallelismThreshold", peerSyncParallelismThreshold);
 
     //TODO there is more to add
 
