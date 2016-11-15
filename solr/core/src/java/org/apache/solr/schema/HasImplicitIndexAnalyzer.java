@@ -15,9 +15,11 @@
  * limitations under the License.
  */
 
+package org.apache.solr.schema;
+
 /**
- * APIs and implementations of {@link org.apache.solr.response.transform.DocTransformer} for modifying documents in Solr request responses
+ * Marker interface for field types that have an implicit (non-user-configurable)
+ * index-time schema.
  */
-package org.apache.solr.response.transform;
-
-
+public interface HasImplicitIndexAnalyzer {
+}
