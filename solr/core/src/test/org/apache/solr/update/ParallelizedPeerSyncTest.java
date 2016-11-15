@@ -27,8 +27,6 @@ import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.util.StrUtils;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,62 +81,7 @@ public class ParallelizedPeerSyncTest extends BaseDistributedSearchTestCase {
   
   @Test
   @ShardsFixed(num = 2)
-  @Repeat(iterations=50)
   public void test() throws Exception {
-    handle.clear();
-    handle.put("timestamp", SKIPVAL);
-    handle.put("score", SKIPVAL);
-    handle.put("maxScore", SKIPVAL);
-
-    SolrClient client0 = clients.get(0);
-    SolrClient client1 = clients.get(1);
-
-    
-    //add a few docs to establish frame of reference
-    long v = 0;
-    List<SolrInputDocument> docsToAdd = new ArrayList<>();
-    for(int i=0; i < 10000; i ++) {      
-      v++;
-      docsToAdd.add(sdoc("id",String.valueOf(v),"_version_",v));
-    }
-    add(client0, seenLeader, docsToAdd.toArray(new SolrInputDocument[0]));
-    add(client1, seenLeader, docsToAdd.toArray(new SolrInputDocument[0]));
-    client0.commit(); client1.commit();
-    queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);
-    
-    // add a document and ensure sync    
-    v++;
-    add(client0, seenLeader, sdoc("id",String.valueOf(v),"_version_",v));
-    assertSync(client1, numVersions, true, shardsArr[0]);
-    client0.commit(); client1.commit(); queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);
-    
-    // add a few documents (more than peerSyncParallelismThreshold) and ensure sync
-    docsToAdd = new ArrayList<>();
-    for(int i=0; i < 20000; i++) {
-        v++;
-        docsToAdd.add(sdoc("id",String.valueOf(v),"_version_",v));
-        if(i % 1000 == 0) {
-          add(client0, seenLeader, docsToAdd.toArray(new SolrInputDocument[0]));
-          client0.commit();
-          docsToAdd = new ArrayList<>();
-        }
-    }
-    // add remaining docs
-    if(docsToAdd.size() > 0) {
-      add(client0, seenLeader, docsToAdd.toArray(new SolrInputDocument[0]));
-    }
-    
-    long start = System.nanoTime();
-    assertSync(client1, numVersions, true, shardsArr[0]);
-    System.out.println("############ Time For PeerSync:" + (System.nanoTime() - start));
-    client0.commit(); client1.commit(); queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);
-  }
-
-  
-  @Test
-  @ShardsFixed(num = 2)
-  //@Repeat(iterations=5)
-  public void testWithReorderedDBQs() throws Exception {
     handle.clear();
     handle.put("timestamp", SKIPVAL);
     handle.put("score", SKIPVAL);
@@ -167,12 +110,13 @@ public class ParallelizedPeerSyncTest extends BaseDistributedSearchTestCase {
     client0.commit(); client1.commit(); queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);
     
     // add a few documents (more than peerSyncParallelismThreshold) and ensure sync
-    /*docsToAdd = new ArrayList<>();
-    for(int i=0; i < peerSyncParallelismThreshold + random().nextInt(20); i++) {
+    docsToAdd = new ArrayList<>();
+    for(int i=0; i < 1000; i++) {
         v++;
         docsToAdd.add(sdoc("id",String.valueOf(v),"_version_",v));
-        if(random().nextInt(40) % 5 == 0) {
+        if(i % 100 == 0) {
           add(client0, seenLeader, docsToAdd.toArray(new SolrInputDocument[0]));
+          client0.commit();
           docsToAdd = new ArrayList<>();
         }
     }
@@ -180,31 +124,58 @@ public class ParallelizedPeerSyncTest extends BaseDistributedSearchTestCase {
     if(docsToAdd.size() > 0) {
       add(client0, seenLeader, docsToAdd.toArray(new SolrInputDocument[0]));
     }
-    client0.commit();
+    
     assertSync(client1, numVersions, true, shardsArr[0]);
-    client0.commit(); client1.commit(); queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);*/
+    client0.commit(); client1.commit(); queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);
+  }
+
+  
+  @Test
+  @ShardsFixed(num = 2)
+  public void testWithReorderedDBQs() throws Exception {
+    handle.clear();
+    handle.put("timestamp", SKIPVAL);
+    handle.put("score", SKIPVAL);
+    handle.put("maxScore", SKIPVAL);
+
+    SolrClient client0 = clients.get(0);
+    SolrClient client1 = clients.get(1);
+
+    
+    //add a few docs to establish frame of reference
+    long v = 0;
+    List<SolrInputDocument> docsToAdd = new ArrayList<>();
+    for(int i=0; i < 1000; i ++) {      
+      v++;
+      docsToAdd.add(sdoc("id",String.valueOf(v),"_version_",v));
+    }
+    add(client0, seenLeader, docsToAdd.toArray(new SolrInputDocument[0]));
+    add(client1, seenLeader, docsToAdd.toArray(new SolrInputDocument[0]));
+    client0.commit(); client1.commit();
+    queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);
+    
+    // add a document and ensure sync    
+    v++;
+    add(client0, seenLeader, sdoc("id",String.valueOf(v),"_version_",v));
+    assertSync(client1, numVersions, true, shardsArr[0]);
+    client0.commit(); client1.commit(); queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);
     
     int numDBQs = 0;
     // add/delete a bunch of documents (at least as much as parallelization threshold documents to the leader
     // issue at least maxCachedDBQs deletes
-    for(int i=0; (i < (peerSyncParallelismThreshold * 3)) && (numDBQs < maxCachedDBQs) ; i++) {
+    for(int i=0; i < 2000; i++) {
       v++; 
       // issue a delete once in a while
-      if(v % 3 == 0) {
+      if( (v % 3 == 0) && numDBQs < maxCachedDBQs && random().nextBoolean()) {
         long idToDel = random().nextInt((int) (v-1));
         delQ(client0, params(DISTRIB_UPDATE_PARAM,FROM_LEADER,"_version_",Long.toString(-v)), "id:" + idToDel);
         numDBQs++;
       } else {
         add(client0, seenLeader, sdoc("id",String.valueOf(v),"_version_",v));
-        v++;
-        add(client0, seenLeader, sdoc("id",String.valueOf(v),"_version_",v));
       }
     }
-    client0.commit(); 
 
-    long start = System.nanoTime();
     assertSync(client1, numVersions, true, shardsArr[0]);
-    System.out.println("############ Time For PeerSync:" + (System.nanoTime() - start));
     client0.commit(); client1.commit(); queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);
   }
 

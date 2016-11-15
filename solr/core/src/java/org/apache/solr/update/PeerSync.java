@@ -735,9 +735,8 @@ public class PeerSync  {
 
     final AtomicReference<Exception> exception = new AtomicReference<>();
     final AtomicReference<Object> objHolder = new AtomicReference<Object>();
-    final AtomicReference<Long> maxVersionHolder = new AtomicReference<>(Long.valueOf(0));
+    //final AtomicReference<Long> maxVersionHolder = new AtomicReference<>(Long.valueOf(0));
     
-    // TODO  move this out ?
     Consumer<Object> updateCmdConsumer = (Object update) -> {
       try {
         // objHolder[0] = update;
@@ -751,14 +750,11 @@ public class PeerSync  {
         long version = (Long) entry.get(1);
         
         // Not sure what this check was really intended for 
-        if (Math.abs(version) == Math.abs(maxVersionHolder.get()) && version == 0) {
+        /*if (Math.abs(version) == Math.abs(maxVersionHolder.get()) && version == 0) {
           log.info("Will not process version id:{}, lastVersion : {}", version, maxVersionHolder.get());
           return;
         }
-        
-        log.debug("Processing update version:{}", version);
-        
-        maxVersionHolder.set(Math.max(Math.abs(maxVersionHolder.get()), Math.abs(version))); 
+        maxVersionHolder.set(Math.max(Math.abs(maxVersionHolder.get()), Math.abs(version)));*/ 
 
         switch (oper) {
           case UpdateLog.ADD: {
@@ -814,10 +810,11 @@ public class PeerSync  {
       // if we have too many updates to process, process those in parallel
       int parallelismThreshold = core.getSolrConfig().peerSyncParallelismThreshold;
       if (parallelismThreshold > 0 && updates.size() > parallelismThreshold) {
-        log.info("Applying updates in parallel....");
-        ForkJoinPool fjp = new ForkJoinPool(2);
+        int parallelism = core.getSolrConfig().peerSyncParallelism;
+        log.info("Applying updates in parallel with parallelism:{}", parallelism);
+        ForkJoinPool fjp = new ForkJoinPool(parallelism);
         try {
-          /*Function<Object,Callable<Void>> updateTaskCreator = 
+          Function<Object,Callable<Void>> updateTaskCreator = 
               (Object update) -> {
                                   return () -> {
                                     updateCmdConsumer.accept(update);
@@ -828,16 +825,13 @@ public class PeerSync  {
           List<Callable<Void>> updateTasks = updates.stream().map(update -> updateTaskCreator.apply(update))
               .collect(Collectors.toList());
 
-          fjp.invokeAll(updateTasks);*/
-          
-          fjp.submit(() -> {updates.stream().parallel().forEach(update -> updateCmdConsumer.accept(update));}).get();
-
+          fjp.invokeAll(updateTasks);
         } finally {
           log.info("Shutting down the pool");
           fjp.shutdownNow();
         }
       } else {
-        log.info("Applying updates one at time....");
+        log.info("Applying updates one at time");
         updates.stream().forEach(update -> updateCmdConsumer.accept(update));
       }
     } catch (Exception e) {
