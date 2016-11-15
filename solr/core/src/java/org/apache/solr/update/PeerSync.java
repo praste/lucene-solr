@@ -59,7 +59,6 @@ import org.apache.solr.update.processor.UpdateRequestProcessorChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import static org.apache.solr.update.processor.DistributedUpdateProcessor.DistribPhase.FROMLEADER;
 import static org.apache.solr.update.processor.DistributingUpdateProcessorFactory.DISTRIB_UPDATE_PARAM;
 
@@ -566,7 +565,7 @@ public class PeerSync  {
 
     Object fingerprint = srsp.getSolrResponse().getResponse().get("fingerprint");
 
-    log.info(msg() + " Received version=" + otherVersions+ " from " + sreq.shards[0] + " fingerprint:" + fingerprint );
+    log.info(msg() + " Received " + otherVersions.size() + " versions from " + sreq.shards[0] + " fingerprint:" + fingerprint );
     if (fingerprint != null) {
       sreq.fingerprint = IndexFingerprint.fromObject(fingerprint);
     }
