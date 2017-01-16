@@ -817,7 +817,7 @@ public class PeerSync  {
         log.info("Applying updates in parallel....");
         ForkJoinPool fjp = new ForkJoinPool(2);
         try {
-          /*Function<Object,Callable<Void>> updateTaskCreator = 
+          Function<Object,Callable<Void>> updateTaskCreator = 
               (Object update) -> {
                                   return () -> {
                                     updateCmdConsumer.accept(update);
@@ -828,9 +828,9 @@ public class PeerSync  {
           List<Callable<Void>> updateTasks = updates.stream().map(update -> updateTaskCreator.apply(update))
               .collect(Collectors.toList());
 
-          fjp.invokeAll(updateTasks);*/
+          fjp.invokeAll(updateTasks);
           
-          fjp.submit(() -> {updates.stream().parallel().forEach(update -> updateCmdConsumer.accept(update));}).get();
+          //fjp.submit(() -> {updates.stream().parallel().forEach(update -> updateCmdConsumer.accept(update));}).get();
 
         } finally {
           log.info("Shutting down the pool");

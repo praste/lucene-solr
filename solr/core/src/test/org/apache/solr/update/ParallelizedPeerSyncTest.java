@@ -135,9 +135,9 @@ public class ParallelizedPeerSyncTest extends BaseDistributedSearchTestCase {
   }
 
   
-  @Test
+  /*@Test
   @ShardsFixed(num = 2)
-  //@Repeat(iterations=5)
+  @Repeat(iterations=25)
   public void testWithReorderedDBQs() throws Exception {
     handle.clear();
     handle.put("timestamp", SKIPVAL);
@@ -151,7 +151,7 @@ public class ParallelizedPeerSyncTest extends BaseDistributedSearchTestCase {
     //add a few docs to establish frame of reference
     long v = 0;
     List<SolrInputDocument> docsToAdd = new ArrayList<>();
-    for(int i=0; i < 1000; i ++) {      
+    for(int i=0; i < 8000; i ++) {      
       v++;
       docsToAdd.add(sdoc("id",String.valueOf(v),"_version_",v));
     }
@@ -166,31 +166,14 @@ public class ParallelizedPeerSyncTest extends BaseDistributedSearchTestCase {
     assertSync(client1, numVersions, true, shardsArr[0]);
     client0.commit(); client1.commit(); queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);
     
-    // add a few documents (more than peerSyncParallelismThreshold) and ensure sync
-    /*docsToAdd = new ArrayList<>();
-    for(int i=0; i < peerSyncParallelismThreshold + random().nextInt(20); i++) {
-        v++;
-        docsToAdd.add(sdoc("id",String.valueOf(v),"_version_",v));
-        if(random().nextInt(40) % 5 == 0) {
-          add(client0, seenLeader, docsToAdd.toArray(new SolrInputDocument[0]));
-          docsToAdd = new ArrayList<>();
-        }
-    }
-    // add remaining docs
-    if(docsToAdd.size() > 0) {
-      add(client0, seenLeader, docsToAdd.toArray(new SolrInputDocument[0]));
-    }
-    client0.commit();
-    assertSync(client1, numVersions, true, shardsArr[0]);
-    client0.commit(); client1.commit(); queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);*/
     
     int numDBQs = 0;
     // add/delete a bunch of documents (at least as much as parallelization threshold documents to the leader
     // issue at least maxCachedDBQs deletes
-    for(int i=0; (i < (peerSyncParallelismThreshold * 3)) && (numDBQs < maxCachedDBQs) ; i++) {
+    for(int i=0; i < 49999 && (numDBQs < maxCachedDBQs) ; i++) {
       v++; 
       // issue a delete once in a while
-      if(v % 3 == 0) {
+      if(i % 100 == 0) {
         long idToDel = random().nextInt((int) (v-1));
         delQ(client0, params(DISTRIB_UPDATE_PARAM,FROM_LEADER,"_version_",Long.toString(-v)), "id:" + idToDel);
         numDBQs++;
@@ -201,12 +184,12 @@ public class ParallelizedPeerSyncTest extends BaseDistributedSearchTestCase {
       }
     }
     client0.commit(); 
-
+    System.out.println("numDBQs: " + numDBQs);
     long start = System.nanoTime();
     assertSync(client1, numVersions, true, shardsArr[0]);
     System.out.println("############ Time For PeerSync:" + (System.nanoTime() - start));
     client0.commit(); client1.commit(); queryAndCompare(params("q", "*:*", "sort", "_version_ desc"), client0, client1);
-  }
+  }*/
 
 
   void assertSync(SolrClient client, int numVersions, boolean expectedResult, String... syncWith) throws IOException, SolrServerException {
