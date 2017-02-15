@@ -19,6 +19,7 @@ package org.apache.lucene.codecs.blocktreeords;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.lucene.codecs.BlockTermState;
@@ -612,7 +613,7 @@ public final class OrdsBlockTreeTermsWriter extends FieldsConsumer {
           assert ent.isTerm: "i=" + i;
 
           PendingTerm term = (PendingTerm) ent;
-          assert StringHelper.startsWith(term.termBytes, prefix): "term.term=" + term.termBytes + " prefix=" + prefix;
+          assert StringHelper.startsWith(term.termBytes, prefix): "term.term=" + Arrays.toString(term.termBytes) + " prefix=" + prefix;
           BlockTermState state = term.state;
           final int suffix = term.termBytes.length - prefixLength;
           /*

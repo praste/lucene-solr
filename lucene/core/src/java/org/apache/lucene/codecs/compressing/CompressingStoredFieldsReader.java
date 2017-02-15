@@ -446,7 +446,7 @@ public final class CompressingStoredFieldsReader extends StoredFieldsReader {
           for (int i = 0; i < chunkDocs; ++i) {
             offsets[1 + i] = (1 + i) * length;
           }
-        } else if (bitsPerStoredFields > 31) {
+        } else if (bitsPerLength > 31) {
           throw new CorruptIndexException("bitsPerLength=" + bitsPerLength, fieldsStream);
         } else {
           final PackedInts.ReaderIterator it = PackedInts.getReaderIteratorNoHeader(fieldsStream, PackedInts.Format.PACKED, packedIntsVersion, chunkDocs, bitsPerLength, 1);

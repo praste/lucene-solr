@@ -71,7 +71,7 @@ final class Geo3DPointOutsideSortField extends SortField {
     if (this == obj) return true;
     if (!super.equals(obj)) return false;
     if (getClass() != obj.getClass()) return false;
-    final Geo3DPointSortField other = (Geo3DPointSortField) obj;
+    final Geo3DPointOutsideSortField other = (Geo3DPointOutsideSortField) obj;
     return distanceShape.equals(other.distanceShape);
   }
 

@@ -342,7 +342,8 @@ public final class FuzzyTermsEnum extends TermsEnum {
       if (automata == null) {
         return 0;
       } else {
-        return automata.hashCode();
+        // Calling hashCode on an array returns the same value as System.identityHashCode, and ignores the contents and length of the array
+        return Arrays.hashCode(automata);
       }
     }
 

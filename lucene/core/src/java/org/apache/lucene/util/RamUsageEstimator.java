@@ -219,11 +219,13 @@ public final class RamUsageEstimator {
     // get min/max value of cached Long class instances:
     long longCacheMinValue = 0;
     while (longCacheMinValue > Long.MIN_VALUE
+        // why are we comparing value of calculation with itself
         && Long.valueOf(longCacheMinValue - 1) == Long.valueOf(longCacheMinValue - 1)) {
       longCacheMinValue -= 1;
     }
     long longCacheMaxValue = -1;
     while (longCacheMaxValue < Long.MAX_VALUE
+        // why are we comparing value of calculation with itself
         && Long.valueOf(longCacheMaxValue + 1) == Long.valueOf(longCacheMaxValue + 1)) {
       longCacheMaxValue += 1;
     }

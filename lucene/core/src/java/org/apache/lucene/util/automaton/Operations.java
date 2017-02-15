@@ -556,7 +556,10 @@ final public class Operations {
 
     @Override
     public boolean equals(Object other) {
-      return ((PointTransitions) other).point == point;
+      if(other instanceof PointTransitions) {
+        return ((PointTransitions) other).point == point;
+      }
+      return false;
     }
 
     @Override

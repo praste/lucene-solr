@@ -19,6 +19,7 @@ package org.apache.lucene.store;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.Arrays;
 
 /** Base implementation class for buffered {@link IndexInput}. */
 public abstract class BufferedIndexInput extends IndexInput implements RandomAccessInput {
@@ -72,7 +73,7 @@ public abstract class BufferedIndexInput extends IndexInput implements RandomAcc
 
   /** Change the buffer size used by this IndexInput */
   public final void setBufferSize(int newSize) {
-    assert buffer == null || bufferSize == buffer.length: "buffer=" + buffer + " bufferSize=" + bufferSize + " buffer.length=" + (buffer != null ? buffer.length : 0);
+    assert buffer == null || bufferSize == buffer.length: "buffer=" + Arrays.toString(buffer) + " bufferSize=" + bufferSize + " buffer.length=" + (buffer != null ? buffer.length : 0);
     if (newSize != bufferSize) {
       checkBufferSize(newSize);
       bufferSize = newSize;

@@ -282,6 +282,7 @@ public class LatLonBounds implements Bounds {
     } else {
       // Compute whether we're to the right of the left value.  But the left value may be greater than
       // the right value.
+      // wouldn't we get NPE if either leftLongitude or rightLongitude is null ?
       double currentLeftLongitude = leftLongitude;
       double currentRightLongitude = rightLongitude;
       if (currentRightLongitude < currentLeftLongitude)

@@ -18,6 +18,7 @@ package org.apache.lucene.codecs.idversion;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.lucene.codecs.BlockTermState;
@@ -590,7 +591,7 @@ public final class VersionBlockTreeTermsWriter extends FieldsConsumer {
           assert ent.isTerm: "i=" + i;
 
           PendingTerm term = (PendingTerm) ent;
-          assert StringHelper.startsWith(term.termBytes, prefix): "term.term=" + term.termBytes + " prefix=" + prefix;
+          assert StringHelper.startsWith(term.termBytes, prefix): "term.term=" + Arrays.toString(term.termBytes) + " prefix=" + prefix;
           BlockTermState state = term.state;
           maxVersionInBlock = Math.max(maxVersionInBlock, ((IDVersionTermState) state).idVersion);
           final int suffix = term.termBytes.length - prefixLength;

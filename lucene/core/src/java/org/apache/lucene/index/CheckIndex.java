@@ -2192,7 +2192,7 @@ public final class CheckIndex implements Closeable {
         if (found != found2) {
           throw new RuntimeException("dv iterator field=" + field + ": doc=" + (doc-1) + " has unstable advanceExact");
         }
-
+        // wouldn't this always be true ??
         if (i % 1 == 0) {
           int doc2 = it2.nextDoc();
           if (doc != doc2) {

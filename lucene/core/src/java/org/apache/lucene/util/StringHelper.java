@@ -256,6 +256,12 @@ public abstract class StringHelper {
         // may not be available on this platform
         // fall back to lower quality randomness from 3 different sources:
         x0 = System.nanoTime();
+        
+        // from findbugs it seems like shifting a int by 32 bits, is a noop 
+        
+        // The code performs shift of a 32 bit int by a constant amount outside the range -31..31. 
+        // The effect of this is to use the lower 5 bits of the integer value to decide how much to shift by (e.g., shifting by 40 bits is the same as shifting by 8 bits, 
+        //  and shifting by 32 bits is the same as shifting by zero bits). This probably isn't what was expected, and it is at least confusing.        
         x1 = StringHelper.class.hashCode() << 32;
         
         StringBuilder sb = new StringBuilder();

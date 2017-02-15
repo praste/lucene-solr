@@ -477,7 +477,7 @@ public class TestFSTs extends LuceneTestCase {
       
       BufferedReader is = Files.newBufferedReader(wordsFileIn, StandardCharsets.UTF_8);
       try {
-        final IntsRefBuilder intsRef = new IntsRefBuilder();
+        final IntsRefBuilder intsRefBuilder = new IntsRefBuilder();
         long tStart = System.currentTimeMillis();
         int ord = 0;
         while(true) {
@@ -485,9 +485,9 @@ public class TestFSTs extends LuceneTestCase {
           if (w == null) {
             break;
           }
-          toIntsRef(w, inputMode, intsRef);
-          builder.add(intsRef.get(),
-                      getOutput(intsRef.get(), ord));
+          toIntsRef(w, inputMode, intsRefBuilder);
+          builder.add(intsRefBuilder.get(),
+                      getOutput(intsRefBuilder.get(), ord));
 
           ord++;
           if (ord % 500000 == 0) {
@@ -554,10 +554,10 @@ public class TestFSTs extends LuceneTestCase {
               if (w == null) {
                 break;
               }
-              toIntsRef(w, inputMode, intsRef);
+              toIntsRef(w, inputMode, intsRefBuilder);
               if (iter == 0) {
-                T expected = getOutput(intsRef.get(), ord);
-                T actual = Util.get(fst, intsRef.get());
+                T expected = getOutput(intsRefBuilder.get(), ord);
+                T actual = Util.get(fst, intsRefBuilder.get());
                 if (actual == null) {
                   throw new RuntimeException("unexpected null output on input=" + w);
                 }
@@ -566,13 +566,13 @@ public class TestFSTs extends LuceneTestCase {
                 }
               } else {
                 // Get by output
-                final Long output = (Long) getOutput(intsRef.get(), ord);
+                final Long output = (Long) getOutput(intsRefBuilder.get(), ord);
                 @SuppressWarnings("unchecked") final IntsRef actual = Util.getByOutput((FST<Long>) fst, output.longValue());
                 if (actual == null) {
                   throw new RuntimeException("unexpected null input from output=" + output);
                 }
-                if (!actual.equals(intsRef)) {
-                  throw new RuntimeException("wrong input (got " + actual + " but expected " + intsRef + " from output=" + output);
+                if (!actual.equals(intsRefBuilder.get())) {
+                  throw new RuntimeException("wrong input (got " + actual + " but expected " + intsRefBuilder + " from output=" + output);
                 }
               }
 

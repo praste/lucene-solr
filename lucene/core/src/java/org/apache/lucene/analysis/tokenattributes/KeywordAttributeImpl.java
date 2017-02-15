@@ -48,10 +48,11 @@ public final class KeywordAttributeImpl extends AttributeImpl implements
   public boolean equals(Object obj) {
     if (this == obj)
       return true;
-    if (getClass() != obj.getClass())
-      return false;
-    final KeywordAttributeImpl other = (KeywordAttributeImpl) obj;
-    return keyword == other.keyword;
+    if (obj instanceof KeywordAttributeImpl) {      
+      final KeywordAttributeImpl other = (KeywordAttributeImpl) obj;
+      return keyword == other.keyword;
+    }
+    return false;
   }
 
   @Override
